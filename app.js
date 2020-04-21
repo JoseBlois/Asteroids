@@ -1,10 +1,11 @@
 (function(){
 var canvas =null,ctx = null;
 var lastPress=null;
-var KEY_LEFT=37,KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_SPACE=32,KEY_ENTER=13;
+var KEY_LEFT=37,KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_SPACE=32,KEY_ENTER=13,KEY_X = 88;
 var pressing=[];
 var player  = new Circle(150,100,5);
-var speed=0,k=0.5;
+var shockWave = new Circle(-40,-40,20);
+// var speed=0,k=0.5;
 var score=0;
 var spriteSheet = new Image();
 var background = new Image();
@@ -40,8 +41,6 @@ function init(){
     canvas.width=300;
     canvas.height=200;
 
-    console.log('se ha iniciado')
-
     spriteSheet.src = 'assets/sprite_sheet.png';
     background.src='assets/nebula2.jpg';
 
@@ -54,20 +53,31 @@ function repaint(){
     paint(ctx);
 }
 function paint(ctx){
+    ctx.textAlign='left'
     ctx.fillStyle='#000'
     // ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(background,0,0)
     ctx.fillStyle='#fff';
     ctx.fillText('Speed: '+player.speed.toFixed(1),0,10);
     ctx.fillText('Score: '+score,0,20);
-    ctx.strokeStyle='#0f0';
+    ctx.textAlign='right'
+    ctx.fillText('Lives: '+lives,canvas.width,10)
+    if(shockWave.timer === 0 ){
+        ctx.fillStyle='#0f0'
+        ctx.fillText('Shockwave [X]: Available',canvas.width,20)
+    }else{
+        ctx.fillStyle='#f00'
+        ctx.fillText('Shockwave [X]: on cooldown',canvas.width,20)
+    }
+    ctx.strokeStyle='#fff';
     if(player.timer<21&&player.timer%2==0){
     if(pressing[KEY_UP]){
     player.drawImageArea(ctx,spriteSheet,(~~(aTimer*10)%3)*10,0,10,10);   
     }
      else player.drawImageArea(ctx,spriteSheet, 0,0,10,10);
     }
-
+    if(shockWave.timer>=40 && shockWave.timer%2===0)
+    shockWave.draw(ctx);
     for(var i = 0,l=shots.length;i<l;i++){
         shots[i].drawImageArea(ctx,spriteSheet,30,(~~(aTimer*10)%2)*5,5,5);
     }
@@ -79,10 +89,30 @@ function paint(ctx){
     for(var m =0;m<explotion.length;m++){
         explotion[m].drawImageArea(ctx,spriteSheet,35,(aTimer%2)*5,5,5);
     }
+    if(pause){
+        ctx.fillStyle='#fff';
+        ctx.textAlign='center';
+        if(lives<0){
+            ctx.fillText('GAME OVER - ENTER TO RESTART',canvas.width/2,canvas.height/2);
+        }else {ctx.fillText('PAUSE - ENTER TO CONTINUE',canvas.width/2,canvas.height/2);}
+    }
+}
+function reset(){
+    playerReset();
+    enemies.length=0;
+    explotion.length=0;
+    shots.length=0;
+    lives = 3;
+    player.timer=0;
+    aTimer=0;
+    pause=true;
 }
 function act (deltaTime){
     // speed =0;
     if(!pause){
+        if(lives<0){
+            reset();
+        }
         if(lastPress===KEY_ENTER){
             pause=!pause
         }
@@ -102,7 +132,12 @@ function act (deltaTime){
         if(pressing[KEY_LEFT]){
             player.rotation-=10;
         }
-        if(pressing[KEY_SPACE] && track ===10){
+        if(lastPress ===KEY_X && player.timer<21 && shockWave.timer === 0){
+            shockWave.x = player.x;
+            shockWave.y = player.y;
+            shockWave.timer = 100;
+        }
+        if(pressing[KEY_SPACE] && track ===10 &&player.timer<21){
             var s = new Circle(player.x,player.y,2.5);
             s.speed = player.speed+10;
             s.rotation=player.rotation;
@@ -136,6 +171,16 @@ function act (deltaTime){
         
         for(var i =0,l=enemies.length;i<l;i++){
             enemies[i].move((enemies[i].rotation-90)*Math.PI/180,2)
+            if(enemies[i].distance(shockWave)<0){
+                if(enemies[i].radius <10){
+                    score++;
+                    enemies.splice(i--,1);
+                    l--;
+                }
+                else{
+                    enemies[i].rotation+=180;
+                }
+            }
             for(var j=0,ll=shots.length;j<ll;j++){
                 if(enemies[i].distance(shots[j])<0){
                     if(enemies[i].radius>5){
@@ -179,6 +224,14 @@ function act (deltaTime){
                 playerReset();
             }
         }
+        //shockWave timer
+        if(shockWave.timer > 0){
+            shockWave.timer--;
+            if(shockWave.timer<80){
+                shockWave.x=-20;
+                shockWave.y=-20;
+            }
+        }
 
         //player screen boundaries
         if(player.x<player.radius*2){
@@ -195,6 +248,9 @@ function act (deltaTime){
         }
         player.move((player.rotation-90)*Math.PI/180,player.speed);//player.move((player.rotation-90)*Math.PI/180,player.speed);
 
+        if(lives<0){
+            pause=true;
+        }
         //TIMER
         aTimer+=deltaTime;
         if(aTimer>3600){
