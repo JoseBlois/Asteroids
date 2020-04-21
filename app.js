@@ -1,7 +1,7 @@
 (function(){
 var canvas =null,ctx = null;
 var lastPress=null;
-var KEY_LEFT=37,KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_SPACE=32;
+var KEY_LEFT=37,KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_SPACE=32,KEY_ENTER=13;
 var pressing=[];
 var player  = new Circle(150,100,5);
 var speed=0,k=0.5;
@@ -12,6 +12,9 @@ var aTimer=0;
 var shots = [];
 var track = 0;
 var enemies = [];
+var explotion =[];
+var lives =3;
+var pause=true;
 
 function random(max){
     return ~~(Math.random()*max);
@@ -25,7 +28,12 @@ function enableInputs(){
         pressing[evt.which]=false;
     },false);
 }
-
+function playerReset(){
+    player.x=canvas.width/2;
+    player.y=canvas.height/2;
+    player.rotation=0;
+    player.speed=0;
+}
 function init(){
     canvas= document.getElementById('canvas');
     ctx = canvas.getContext('2d');
@@ -53,111 +61,157 @@ function paint(ctx){
     ctx.fillText('Speed: '+player.speed.toFixed(1),0,10);
     ctx.fillText('Score: '+score,0,20);
     ctx.strokeStyle='#0f0';
+    if(player.timer<21&&player.timer%2==0){
     if(pressing[KEY_UP]){
     player.drawImageArea(ctx,spriteSheet,(~~(aTimer*10)%3)*10,0,10,10);   
     }
      else player.drawImageArea(ctx,spriteSheet, 0,0,10,10);
+    }
+
     for(var i = 0,l=shots.length;i<l;i++){
         shots[i].drawImageArea(ctx,spriteSheet,30,(~~(aTimer*10)%2)*5,5,5);
     }
+
     for(var l = 0;l<enemies.length;l++){
         enemies[l].drawImageArea(ctx,spriteSheet,0,10,40,40)
     }
+
+    for(var m =0;m<explotion.length;m++){
+        explotion[m].drawImageArea(ctx,spriteSheet,35,(aTimer%2)*5,5,5);
+    }
 }
-function act (){
+function act (deltaTime){
     // speed =0;
-    if(pressing[KEY_DOWN]){
-        if(player.speed>-5){
-            player.speed--;
+    if(!pause){
+        if(lastPress===KEY_ENTER){
+            pause=!pause
         }
-    }
-    if(pressing[KEY_UP]){
-        if(player.speed<5){
-            player.speed++;
-        }
-    }
-    if(pressing[KEY_RIGHT]){
-        player.rotation+=10
-    }
-    if(pressing[KEY_LEFT]){
-        player.rotation-=10;
-    }
-    if(pressing[KEY_SPACE] && track ===10){
-        var s = new Circle(player.x,player.y,2.5);
-        s.speed = player.speed+10;
-        s.rotation=player.rotation;
-        s.timer=15;
-        shots.push(s);
-        console.log('shot')
-        track=0;
-    }else{
-        if(track<10){
-            track+=5;
-        }
-    }
-    for(var i = 0,l=shots.length;i<l;i++){
-        shots[i].timer--
-        if(shots[i].timer<=0){
-            shots.splice(i--,1)
-            l--;
-            continue
-        }
-    shots[i].move((shots[i].rotation-90)*Math.PI/180,shots[i].speed)
-    // shots[i].move((shots[i].rotation-90)*Math.PI/180,shots[i].speed);
-    }
-    //ENEMIES MANAGEMENT
-    if(enemies.length<1){
-        for (var p = 0 ; p<3;p++){
-            var e = new Circle(-20,-20,20);
-            e.rotation= random(360);
-            enemies.push(e);
-        }
-    }
-    
-    for(var i =0,l=enemies.length;i<l;i++){
-        enemies[i].move((enemies[i].rotation-90)*Math.PI/180,2)
-        for(var j=0,ll=shots.length;j<ll;j++){
-            if(enemies[i].distance(shots[j])<0){
-                if(enemies[i].radius>5){
-                    for(var k=0;k<3;k++){
-                        var e = new Circle(enemies[i].x,enemies[i].y,enemies[i].radius/2);
-                        e.rotation=shots[j].rotation+120*k;
-                        enemies.push(e)
-                    }
-                }
-                score++;
-                enemies.splice(i--,1);
-                l--;
-                shots.splice(j--,1);
-                ll--;
+        if(pressing[KEY_DOWN]){
+            if(player.speed>-5){
+                player.speed--;
             }
         }
-    }
+        if(pressing[KEY_UP]){
+            if(player.speed<5){
+                player.speed++;
+            }
+        }
+        if(pressing[KEY_RIGHT]){
+            player.rotation+=10
+        }
+        if(pressing[KEY_LEFT]){
+            player.rotation-=10;
+        }
+        if(pressing[KEY_SPACE] && track ===10){
+            var s = new Circle(player.x,player.y,2.5);
+            s.speed = player.speed+10;
+            s.rotation=player.rotation;
+            s.timer=15;
+            shots.push(s);
+            console.log('shot')
+            track=0;
+        }else{
+            if(track<10){
+                track+=5;
+            }
+        }
+        for(var i = 0,l=shots.length;i<l;i++){
+            shots[i].timer--
+            if(shots[i].timer<=0){
+                shots.splice(i--,1)
+                l--;
+                continue
+            }
+        shots[i].move((shots[i].rotation-90)*Math.PI/180,shots[i].speed)
+        // shots[i].move((shots[i].rotation-90)*Math.PI/180,shots[i].speed);
+        }
+        //ENEMIES MANAGEMENT
+        if(enemies.length<1){
+            for (var p = 0 ; p<3;p++){
+                var e = new Circle(-20,-20,20);
+                e.rotation= random(360);
+                enemies.push(e);
+            }
+        }
+        
+        for(var i =0,l=enemies.length;i<l;i++){
+            enemies[i].move((enemies[i].rotation-90)*Math.PI/180,2)
+            for(var j=0,ll=shots.length;j<ll;j++){
+                if(enemies[i].distance(shots[j])<0){
+                    if(enemies[i].radius>5){
+                        for(var k=0;k<3;k++){
+                            var e = new Circle(enemies[i].x,enemies[i].y,enemies[i].radius/2);
+                            e.rotation=shots[j].rotation+120*k;
+                            enemies.push(e)
+                        }
+                    }
+                    score++;
+                    enemies.splice(i--,1);
+                    l--;
+                    shots.splice(j--,1);
+                    ll--;
+                }
+            }
+                //Player collision
+            if(player.timer<1&&enemies[i].distance(player)<0){
+                lives--;
+                player.timer=60;
+                for(var m=0;m<8;m++){
+                    var e = new Circle(player.x,player.y,2.5);
+                    e.rotation=m*45;
+                    e.timer=40;
+                    explotion.push(e);
+                }
+            }
+        }
+        for(var i = 0,l=explotion.length ; i<l;i++){
+            explotion[i].move((explotion[i].rotation-90)*Math.PI/180,1);
+            explotion[i].timer--;
+            if(explotion[i].timer<1){
+                explotion.splice(i--,1);
+                l--;
+            }
+        }
+        //player timer
+        if(player.timer>0){
+            player.timer--;
+            if(player.timer===20){
+                playerReset();
+            }
+        }
 
-    //
-    if(player.x<player.radius*2){
-        player.x=player.radius*2;
-    }
-    if(player.x >canvas.width-player.radius*2){
-        player.x=canvas.width-player.radius*2;
-    }
-    if(player.y<=0+player.radius*2){
-        player.y=0+player.radius*2;
-    }
-    if(player.y >=canvas.height-player.radius*2){
-        player.y=canvas.height-player.radius*2;
-    }
-    player.move((player.rotation-90)*Math.PI/180,player.speed);//player.move((player.rotation-90)*Math.PI/180,player.speed);
+        //player screen boundaries
+        if(player.x<player.radius*2){
+            player.x=player.radius*2;
+        }
+        if(player.x >canvas.width-player.radius*2){
+            player.x=canvas.width-player.radius*2;
+        }
+        if(player.y<=0+player.radius*2){
+            player.y=0+player.radius*2;
+        }
+        if(player.y >=canvas.height-player.radius*2){
+            player.y=canvas.height-player.radius*2;
+        }
+        player.move((player.rotation-90)*Math.PI/180,player.speed);//player.move((player.rotation-90)*Math.PI/180,player.speed);
 
-    //TIMER
-    aTimer++
-    if(aTimer>3600){
-        aTimer-=3600;
+        //TIMER
+        aTimer+=deltaTime;
+        if(aTimer>3600){
+            aTimer-=3600;
+        }
+        lastPress=null
+    }
+    if(pause){
+        if(lastPress===KEY_ENTER){
+            pause=!pause
+            lastPress=null;
+        }
     }
 }
 function run (){
     setTimeout(run,50)
-    act()
+    act(0.05)
 }
 window.addEventListener('load',function(){
     init();
@@ -168,7 +222,7 @@ function Circle(x,y,radius){
     this.y = (y === null)?0:y;
     this.radius = (radius ===null)?0:radius;
     this.scale=1;
-    this.timer;
+    this.timer=0;
     this.rotation=0;
     this.speed=0;
 }
