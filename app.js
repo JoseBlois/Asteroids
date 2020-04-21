@@ -5,8 +5,9 @@ var KEY_LEFT=37,KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_SPACE=32;
 var pressing=[];
 var player  = new Circle(150,100,5);
 var speed=0,k=0.5;
-var ship_img = new Image();
+var score=0;
 var spriteSheet = new Image();
+var background = new Image();
 var aTimer=0;
 var shots = [];
 var track = 0;
@@ -33,8 +34,8 @@ function init(){
 
     console.log('se ha iniciado')
 
-    ship_img.src='assets/spaceShip.png';
     spriteSheet.src = 'assets/sprite_sheet.png';
+    background.src='assets/nebula2.jpg';
 
     enableInputs();
     run()
@@ -46,9 +47,11 @@ function repaint(){
 }
 function paint(ctx){
     ctx.fillStyle='#000'
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    // ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(background,0,0)
     ctx.fillStyle='#fff';
     ctx.fillText('Speed: '+player.speed.toFixed(1),0,10);
+    ctx.fillText('Score: '+score,0,20);
     ctx.strokeStyle='#0f0';
     if(pressing[KEY_UP]){
     player.drawImageArea(ctx,spriteSheet,(~~(aTimer*10)%3)*10,0,10,10);   
@@ -56,6 +59,9 @@ function paint(ctx){
      else player.drawImageArea(ctx,spriteSheet, 0,0,10,10);
     for(var i = 0,l=shots.length;i<l;i++){
         shots[i].drawImageArea(ctx,spriteSheet,30,(~~(aTimer*10)%2)*5,5,5);
+    }
+    for(var l = 0;l<enemies.length;l++){
+        enemies[l].drawImageArea(ctx,spriteSheet,0,10,40,40)
     }
 }
 function act (){
@@ -102,15 +108,38 @@ function act (){
     //ENEMIES MANAGEMENT
     if(enemies.length<1){
         for (var p = 0 ; p<3;p++){
-            var e = new Circle();
+            var e = new Circle(-20,-20,20);
+            e.rotation= random(360);
+            enemies.push(e);
+        }
+    }
+    
+    for(var i =0,l=enemies.length;i<l;i++){
+        enemies[i].move((enemies[i].rotation-90)*Math.PI/180,2)
+        for(var j=0,ll=shots.length;j<ll;j++){
+            if(enemies[i].distance(shots[j])<0){
+                if(enemies[i].radius>5){
+                    for(var k=0;k<3;k++){
+                        var e = new Circle(enemies[i].x,enemies[i].y,enemies[i].radius/2);
+                        e.rotation=shots[j].rotation+120*k;
+                        enemies.push(e)
+                    }
+                }
+                score++;
+                enemies.splice(i--,1);
+                l--;
+                shots.splice(j--,1);
+                ll--;
+            }
         }
     }
 
-    if(player.x<0){
-        player.x=canvas.width;
+    //
+    if(player.x<player.radius*2){
+        player.x=player.radius*2;
     }
-    if(player.x >canvas.width){
-        player.x=0;
+    if(player.x >canvas.width-player.radius*2){
+        player.x=canvas.width-player.radius*2;
     }
     if(player.y<=0+player.radius*2){
         player.y=0+player.radius*2;
@@ -173,6 +202,16 @@ Circle.prototype.move = function (angle,speed){
     if(speed != null){
     this.x+=Math.cos(angle)*speed;
     this.y+=Math.sin(angle)*speed;
+
+    //OFFSCREEN
+    if(this.x>canvas.width)
+    this.x=0;
+    if(this.x<0)
+    this.x=canvas.width;
+    if(this.y>canvas.height)
+    this.y=0;
+    if(this.y<0)
+    this.y=canvas.height;
     }
 };
 Circle.prototype.getAngle = function(circle){
