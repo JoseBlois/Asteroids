@@ -16,6 +16,7 @@ var enemies = [];
 var explotion =[];
 var lives =3;
 var pause=true;
+var wave = 1, waveTimer=40;
 
 function random(max){
     return ~~(Math.random()*max);
@@ -69,6 +70,11 @@ function paint(ctx){
         ctx.fillStyle='#f00'
         ctx.fillText('Shockwave [X]: on cooldown',canvas.width,20)
     }
+    if(waveTimer%2===0 && waveTimer>0){
+        ctx.textAlign='center';
+        ctx.fillStyle='#f00';
+        ctx.fillText('Wave: '+wave,canvas.width/2,canvas.height/2);
+    }
     ctx.strokeStyle='#fff';
     if(player.timer<21&&player.timer%2==0){
     if(pressing[KEY_UP]){
@@ -93,8 +99,8 @@ function paint(ctx){
         ctx.fillStyle='#fff';
         ctx.textAlign='center';
         if(lives<0){
-            ctx.fillText('GAME OVER - ENTER TO RESTART',canvas.width/2,canvas.height/2);
-        }else {ctx.fillText('PAUSE - ENTER TO CONTINUE',canvas.width/2,canvas.height/2);}
+            ctx.fillText('GAME OVER - ENTER TO RESTART',canvas.width/2,canvas.height/2-20);
+        }else {ctx.fillText('PAUSE - ENTER TO CONTINUE',canvas.width/2,canvas.height/2-20);}
     }
 }
 function reset(){
@@ -143,7 +149,7 @@ function act (deltaTime){
             s.rotation=player.rotation;
             s.timer=15;
             shots.push(s);
-            console.log('shot')
+            // console.log('shot')
             track=0;
         }else{
             if(track<10){
@@ -161,8 +167,10 @@ function act (deltaTime){
         // shots[i].move((shots[i].rotation-90)*Math.PI/180,shots[i].speed);
         }
         //ENEMIES MANAGEMENT
-        if(enemies.length<1){
-            for (var p = 0 ; p<3;p++){
+        if(waveTimer>0){
+            waveTimer--
+        }else if(enemies.length<1){
+            for (var p = 0,q=2+wave ; p<q;p++){
                 var e = new Circle(-20,-20,20);
                 e.rotation= random(360);
                 enemies.push(e);
@@ -176,6 +184,10 @@ function act (deltaTime){
                     score++;
                     enemies.splice(i--,1);
                     l--;
+                    if(enemies.length<1){
+                        wave++;
+                        waveTimer=40;
+                    }
                 }
                 else{
                     if(enemies[i].track===0){
@@ -196,6 +208,10 @@ function act (deltaTime){
                     score++;
                     enemies.splice(i--,1);
                     l--;
+                    if(enemies.length<1){
+                        wave++;
+                        waveTimer=40;
+                    }
                     shots.splice(j--,1);
                     ll--;
                 }
