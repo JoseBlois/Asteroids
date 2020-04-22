@@ -76,7 +76,7 @@ function paint(ctx){
     }
      else player.drawImageArea(ctx,spriteSheet, 0,0,10,10);
     }
-    if(shockWave.timer>=40 && shockWave.timer%2===0)
+    if(shockWave.timer>=80 && shockWave.timer%2===0)
     shockWave.draw(ctx);
     for(var i = 0,l=shots.length;i<l;i++){
         shots[i].drawImageArea(ctx,spriteSheet,30,(~~(aTimer*10)%2)*5,5,5);
@@ -178,7 +178,10 @@ function act (deltaTime){
                     l--;
                 }
                 else{
-                    enemies[i].rotation+=180;
+                    if(enemies[i].track===0){
+                    enemies[i].rotation+=120;
+                    enemies[i].track=1;
+                    }
                 }
             }
             for(var j=0,ll=shots.length;j<ll;j++){
@@ -228,8 +231,11 @@ function act (deltaTime){
         if(shockWave.timer > 0){
             shockWave.timer--;
             if(shockWave.timer<80){
-                shockWave.x=-20;
-                shockWave.y=-20;
+                for(var u = 0;u<enemies.length;u++){
+                    enemies[u].track=0;
+                }
+                shockWave.x=-50;
+                shockWave.y=-50;
             }
         }
 
@@ -278,6 +284,7 @@ function Circle(x,y,radius){
     this.y = (y === null)?0:y;
     this.radius = (radius ===null)?0:radius;
     this.scale=1;
+    this.track=0;
     this.timer=0;
     this.rotation=0;
     this.speed=0;
